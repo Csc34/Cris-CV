@@ -1,0 +1,4 @@
+module.exports = {
+  extends: ["next/core-web-vitals"],
+  ignorePatterns: ["out/**", ".next/**", "playwright-report/**", "test-results/**"],
+};

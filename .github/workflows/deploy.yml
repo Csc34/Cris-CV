@@ -1,0 +1,64 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static export
+        run: npm run build --workspace apps/web
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: cdk deploy
+        working-directory: infra
+        run: npx cdk deploy --require-approval never --outputs-file outputs.json
+
+      - name: Read stack outputs
+        id: outputs
+        working-directory: infra
+        run: |
+          echo "bucket=$(node -p "require('./outputs.json').PortfolioStack.BucketName")" >> "$GITHUB_OUTPUT"
+          echo "distribution_id=$(node -p "require('./outputs.json').PortfolioStack.DistributionId")" >> "$GITHUB_OUTPUT"
+          echo "domain=$(node -p "require('./outputs.json').PortfolioStack.DistributionDomainName")" >> "$GITHUB_OUTPUT"
+
+      - name: Sync static site to S3
+        run: |
+          aws s3 sync apps/web/out "s3://${{ steps.outputs.outputs.bucket }}" --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ steps.outputs.outputs.distribution_id }}" \
+            --paths "/*"
+
+      - name: Smoke test
+        run: |
+          status=$(curl -sSf -o /dev/null -w "%{http_code}" "https://${{ steps.outputs.outputs.domain }}/")
+          echo "Homepage responded with $status"
+          test "$status" = "200"

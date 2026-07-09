@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  web:
+    name: Web (lint, typecheck, unit, e2e, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --workspace apps/web
+
+      - name: Typecheck
+        run: npm run typecheck --workspace apps/web
+
+      - name: Unit tests
+        run: npm run test --workspace apps/web
+
+      - name: Build static export
+        run: npm run build --workspace apps/web
+
+      - name: Install Playwright browsers
+        run: npx --workspace apps/web playwright install --with-deps chromium
+
+      - name: E2E + accessibility tests
+        run: npm run test:e2e --workspace apps/web
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+  infra:
+    name: Infra (typecheck, assertions, cdk-nag, synth)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck --workspace infra
+
+      - name: Infra tests (assertions + cdk-nag)
+        run: npm run test --workspace infra
+
+      - name: cdk synth
+        run: npm run synth --workspace infra

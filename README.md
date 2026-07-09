@@ -1,8 +1,8 @@
 # Portfolio
 
-Personal portfolio site (About Me / Experience / Objectives / Projects), built as a fully static
-Next.js export hosted on AWS behind CloudFront, with the infrastructure defined as code (CDK) and
-covered by automated tests end to end.
+Personal portfolio site (About Me / Experience / Professional Interest / Projects / Certifications /
+Contact), built as a fully static Next.js export hosted on AWS behind CloudFront, with the
+infrastructure defined as code (CDK) and covered by automated tests end to end.
 
 ## Stack
 
@@ -24,8 +24,9 @@ npm install
 npm run dev --workspace apps/web   # http://localhost:3000
 ```
 
-Edit your real content in `apps/web/src/data/{profile,experience,projects,objectives}.ts` — everything
-there is placeholder text meant to be replaced.
+Real content (name, about, experience, professional interests, certifications, contact links) lives in
+`apps/web/src/data/*.ts`. Achievements/tech stack for each experience entry and the two project
+write-ups are still placeholders pending more detail.
 
 Run tests:
 

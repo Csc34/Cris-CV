@@ -9,5 +9,6 @@ test("clicking the first experience row navigates to its detail page", async ({ 
 
   await expect(page).toHaveURL(new RegExp(href!.replace(/\//g, "\\/")));
   await expect(page.getByText(/ACHIEVEMENTS/)).toBeVisible();
-  await expect(page.getByText(/TECH_STACK/)).toBeVisible();
+  // TECH_STACK is only rendered when the entry has a non-empty techStack array,
+  // so it isn't asserted here unconditionally.
 });

@@ -2,7 +2,6 @@ import { App, CfnOutput, Stack, type StackProps } from "aws-cdk-lib";
 import type { Construct } from "constructs";
 import { loadConfig } from "./config";
 import { createSiteBuckets } from "./constructs/site-buckets";
-import { createWebAcl } from "./constructs/waf";
 import { createCdn } from "./constructs/cdn";
 import { createMonitoring } from "./constructs/monitoring";
 import { createCostBudget } from "./constructs/budget";
@@ -16,8 +15,7 @@ export class PortfolioStack extends Stack {
     const config = loadConfig(this.node.root as App);
 
     const { siteBucket, logsBucket } = createSiteBuckets(this);
-    const webAcl = createWebAcl(this);
-    const { distribution } = createCdn(this, siteBucket, logsBucket, webAcl.attrArn);
+    const { distribution } = createCdn(this, siteBucket, logsBucket);
     createMonitoring(this, distribution, config.alertEmail);
     createCostBudget(this, config.alertEmail, config.budgetAmountUsd);
     const deployRole = createDeployRole(this, {

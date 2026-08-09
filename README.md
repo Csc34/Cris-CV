@@ -9,9 +9,9 @@ infrastructure defined as code (CDK) and covered by automated tests end to end.
 - **Frontend**: Next.js (App Router) + TypeScript + Tailwind CSS, static export (`output: "export"`).
   Experience and Project entries are data-driven (`apps/web/src/data/*.ts`) and each renders its own
   statically-generated detail page (`/experience/[slug]`, `/projects/[slug]`).
-- **Hosting**: private S3 bucket + CloudFront (Origin Access Control, no public bucket) + WAFv2 +
-  security response headers + CloudWatch dashboard/alarms + AWS Budgets, all defined in `infra/`
-  with AWS CDK v2 (TypeScript).
+- **Hosting**: private S3 bucket + CloudFront (Origin Access Control, no public bucket) + security
+  response headers + CloudWatch dashboard/alarms + AWS Budgets, all defined in `infra/` with AWS CDK v2
+  (TypeScript). No WAF (see trade-offs below).
 - **Testing**: Vitest + React Testing Library (components), Playwright + axe-core (e2e + accessibility),
   `aws-cdk-lib/assertions` + `cdk-nag` (infrastructure correctness and security posture).
 - **CI/CD**: GitHub Actions — `ci.yml` runs on every PR (lint, typecheck, unit, e2e, `cdk synth`),
@@ -55,9 +55,15 @@ npm run typecheck
 
 ## Known trade-offs (documented, not accidental)
 
+- **No WAF.** WAFv2 was removed to cut recurring cost — it has a flat ~$8/mo fee (per-WebACL + per-rule)
+  regardless of traffic, which didn't pay for itself on a low-traffic personal portfolio. The site is
+  still behind CloudFront (which absorbs volumetric abuse by design), keeps a fully private S3 origin,
+  and enforces HTTPS + security response headers. `cdk-nag`'s `AwsSolutions-CFR2` (CloudFront should use
+  WAF) is suppressed in `infra/lib/nag-suppressions.ts` with this reasoning. Re-adding a WebACL later
+  (`infra/lib/constructs/waf.ts` — see git history) is a small, isolated change if traffic/risk grows.
 - **No custom domain in v1.** The site is served on CloudFront's default `*.cloudfront.net` domain.
-  This costs nothing extra and does not reduce security (HTTPS, WAF, private bucket, security headers
-  all still apply). Adding a real domain later only requires a Route 53 hosted zone + ACM certificate
+  This costs nothing extra and does not reduce security (HTTPS, private bucket, security headers all
+  still apply). Adding a real domain later only requires a Route 53 hosted zone + ACM certificate
   (issued in `us-east-1`) + `domainNames`/`certificate` on the `Distribution` — no rework needed. Because
   of this, `cdk-nag`'s `AwsSolutions-CFR4` (CloudFront should use a non-default viewer certificate) is
   suppressed in `infra/lib/nag-suppressions.ts` with that reasoning; it will resolve itself once a

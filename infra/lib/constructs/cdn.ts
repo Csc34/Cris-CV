@@ -13,7 +13,6 @@ export function createCdn(
   scope: Construct,
   siteBucket: s3.Bucket,
   logsBucket: s3.Bucket,
-  webAclArn: string,
 ): SiteCdn {
   const rewriteFn = new cloudfront.Function(scope, "UrlRewriteFunction", {
     code: cloudfront.FunctionCode.fromFile({
@@ -72,7 +71,6 @@ export function createCdn(
       { httpStatus: 403, responseHttpStatus: 404, responsePagePath: "/404.html", ttl: Duration.minutes(5) },
       { httpStatus: 404, responseHttpStatus: 404, responsePagePath: "/404.html", ttl: Duration.minutes(5) },
     ],
-    webAclId: webAclArn,
     enableLogging: true,
     logBucket: logsBucket,
     logFilePrefix: "cloudfront-access-logs/",

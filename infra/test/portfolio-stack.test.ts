@@ -51,7 +51,7 @@ describe("PortfolioStack", () => {
     }
   });
 
-  it("configures CloudFront with WAF and HTTPS redirect", () => {
+  it("configures CloudFront with HTTPS redirect and no WAF (removed to cut cost)", () => {
     // No custom domain in v1, so CloudFront uses its own default certificate and
     // ViewerCertificate/MinimumProtocolVersion is intentionally absent from the template
     // (see AwsSolutions-CFR4 suppression in lib/nag-suppressions.ts for the same reasoning).
@@ -59,10 +59,12 @@ describe("PortfolioStack", () => {
 
     template.hasResourceProperties("AWS::CloudFront::Distribution", {
       DistributionConfig: Match.objectLike({
-        WebACLId: Match.anyValue(),
         DefaultCacheBehavior: Match.objectLike({ ViewerProtocolPolicy: "redirect-to-https" }),
       }),
     });
+    const distributions = template.findResources("AWS::CloudFront::Distribution");
+    const config = Object.values(distributions)[0] as any;
+    expect(config.Properties.DistributionConfig.WebACLId).toBeUndefined();
   });
 
   it("attaches a security headers response headers policy", () => {
@@ -79,14 +81,9 @@ describe("PortfolioStack", () => {
     });
   });
 
-  it("creates a CLOUDFRONT-scoped WAFv2 WebACL with managed rule groups", () => {
+  it("does not create a WAFv2 WebACL (removed to cut recurring cost)", () => {
     const template = synthStack();
-
-    template.resourceCountIs("AWS::WAFv2::WebACL", 1);
-    template.hasResourceProperties("AWS::WAFv2::WebACL", {
-      Scope: "CLOUDFRONT",
-      DefaultAction: { Allow: {} },
-    });
+    template.resourceCountIs("AWS::WAFv2::WebACL", 0);
   });
 
   it("creates CloudWatch alarms wired to an SNS topic", () => {

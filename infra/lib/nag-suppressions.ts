@@ -28,6 +28,14 @@ export function applyNagSuppressions(stack: Stack): void {
           "enforced via minimumProtocolVersion for viewers that support SNI). Once a custom domain + ACM " +
           "certificate is added (see README v1.1 follow-up), this finding goes away on its own.",
       },
+      {
+        id: "AwsSolutions-CFR2",
+        reason:
+          "WAFv2 was deliberately removed to cut recurring cost (~$8/mo flat fee for a low-traffic personal " +
+          "portfolio, independent of WAF actually blocking anything). Accepted trade-off: the site still sits " +
+          "behind CloudFront (DDoS-resistant by design) with a private S3 origin, security response headers, " +
+          "and HTTPS-only. Re-adding a WebACL later is a small, isolated change if traffic/risk grows.",
+      },
     ],
   );
 
